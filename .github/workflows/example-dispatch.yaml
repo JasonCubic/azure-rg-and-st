@@ -1,0 +1,17 @@
+name: example azure resource group and storage account reusable workflow dispatch
+
+on:
+  workflow_dispatch: # Manually triggered by the user in GitHub repo on the Actions tab
+
+jobs:
+  azure-deploy-test:
+    name: deploy a resource group and storage account to azure
+    uses: JasonCubic/azure-rg-and-st/.github/workflows/call.yaml@main
+    with:
+      resource-group-name: rg-ga-test
+      storage-account-prefix: storage
+    secrets:
+      tenant-id: ${{ secrets.TENANT_ID }}
+      subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+      client-id: ${{ secrets.CLIENT_ID }}
+      client-secret: ${{ secrets.CLIENT_SECRET }}

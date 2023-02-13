@@ -1,0 +1,102 @@
+# https://docs.github.com/en/actions/using-workflows/reusing-workflows#example-reusable-workflow
+name: azure deploy resource group and storage account reusable workflow
+
+on:
+  workflow_call:
+    inputs:
+      resource-group-name:
+        description: The name of the resource group that the storage account will be placed into
+        required: true
+        type: string
+      storage-account-prefix:
+        description: The prefix of the storage account
+        default: storage
+        required: false
+        type: string
+      location:
+        description: The azure location/region to deploy the resources into
+        default: westus3
+        required: false
+        type: string
+      deployment-mode:
+        description: Incremental(default) (only add resources to resource group) or Complete (remove extra resources from resource group) or Validate (only validates the template)
+        required: false
+        default: Incremental
+        type: string
+      runs-on:
+        required: false
+        default: '["ubuntu-latest"]'
+        type: string
+    secrets:
+      tenant-id:
+        description: The azure tenant id you are deploying to
+        required: true
+      subscription-id:
+        description: Your azure subscription id
+        required: true
+      client-id:
+        description: The Azure Service Principal id with access to deploy to your subscription
+        required: true
+      client-secret:
+        description: The Azure Service Principal password with access to deploy to your subscription
+        required: true
+
+# Allow one concurrent deployment
+concurrency:
+  group: rw-azure-deploy-rg-and-stg
+  cancel-in-progress: true
+
+jobs:
+  rw-azure-deploy-rg-and-stg:
+    name: reusable workflow that deploys a resource group with a storage account in it
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+
+    steps:
+      # clones this repo.  Remember that this does not run in this repo, it runs a client repo.
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          # github-server-url: https://git.t3.daimlertruck.com
+          repository: JasonCubic/reusable-workflow-pipeline
+          ref: main
+          path: ./.github/actions/reusable-workflow-pipeline
+
+      # note: can put in things like custom validation actions here to make sure values are set correctly
+
+      # Log into Azure
+      - uses: Azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.client-id }}","clientSecret":"${{ secrets.client-secret }}","subscriptionId":"${{ secrets.subscription-id }}","tenantId":"${{ secrets.tenant-id }}"}'
+          enable-AzPSSession: true
+
+      # https://github.com/Azure/arm-deploy
+      - name: deploy azure resource group to subscription
+        uses: azure/arm-deploy@v1
+        with:
+          deploymentName: ga-deploy-sub-${{ env.GITHUB_REPOSITORY }}-${{ env.GITHUB_RUN_NUMBER }}
+          scope: subscription
+          region: ${{ inputs.location }}
+          subscriptionId: ${{ secrets.subscription-id }}
+          template: ./.github/actions/reusable-workflow-pipeline/main.bicep
+          parameters: "location=${{ inputs.location }} rgName=${{ inputs.resource-group-name }}"
+          deploymentMode: ${{ inputs.deployment-mode }}
+          failOnStdErr: true
+
+      - name: deploy azure storage account to resource group
+        uses: azure/arm-deploy@v1
+        with:
+          deploymentName: ga-deploy-rg-${{ env.GITHUB_REPOSITORY }}-${{ env.GITHUB_RUN_NUMBER }}
+          scope: resourcegroup
+          subscriptionId: ${{ secrets.subscription-id }}
+          resourceGroupName: ${{ inputs.resource-group-name }}
+          template: ./.github/actions/reusable-workflow-pipeline/storage.bicep
+          parameters: "location=${{ inputs.location }} stNamePrefix=${{ inputs.storage-account-prefix }}"
+          deploymentMode: ${{ inputs.deployment-mode }}
+          failOnStdErr: true
+
+      - name: powershell Get-AzResourceGroup
+        uses: azure/powershell@v1
+        with:
+          inlineScript: |
+            Get-AzResourceGroup
+          azPSVersion: latest
