@@ -57,9 +57,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           # github-server-url: https://git.t3.daimlertruck.com
-          repository: JasonCubic/reusable-workflow-pipeline
-          ref: main
-          path: ./.github/actions/reusable-workflow-pipeline
+          repository: JasonCubic/azure-rg-and-st
+          ref: v0.1.1
+          path: ./.github/actions/azure-rg-and-st
 
       # note: can put in things like custom validation actions here to make sure values are set correctly
 
@@ -77,7 +77,7 @@ jobs:
           scope: subscription
           region: ${{ inputs.location }}
           subscriptionId: ${{ secrets.subscription-id }}
-          template: ./.github/actions/reusable-workflow-pipeline/main.bicep
+          template: ./.github/actions/azure-rg-and-st/main.bicep
           parameters: "location=${{ inputs.location }} rgName=${{ inputs.resource-group-name }}"
           deploymentMode: ${{ inputs.deployment-mode }}
           failOnStdErr: true
@@ -89,7 +89,7 @@ jobs:
           scope: resourcegroup
           subscriptionId: ${{ secrets.subscription-id }}
           resourceGroupName: ${{ inputs.resource-group-name }}
-          template: ./.github/actions/reusable-workflow-pipeline/storage.bicep
+          template: ./.github/actions/azure-rg-and-st/storage.bicep
           parameters: "location=${{ inputs.location }} stNamePrefix=${{ inputs.storage-account-prefix }}"
           deploymentMode: ${{ inputs.deployment-mode }}
           failOnStdErr: true

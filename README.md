@@ -13,7 +13,7 @@ on:
 jobs:
   deploy-azure-rg-and-st:
     name: deploy a resource group and storage account to azure
-    uses: JasonCubic/azure-rg-and-st/.github/workflows/call.yaml@main
+    uses: JasonCubic/azure-rg-and-st/.github/workflows/call.yaml@v0.1.1
     with:
       resource-group-name: rg-ga-test
       storage-account-prefix: storage
